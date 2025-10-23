@@ -1,6 +1,8 @@
 package com.thms.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,21 +20,16 @@ public class Province {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
-    private String code; // e.g., "01", "02"
+    @NotBlank
+    @Size(max = 10)
+    @Column(unique = true)
+    private String code; // e.g., "KGL", "EST", "WST", "NTH", "STH"
 
-    @Column(nullable = false)
-    private String name;
+    @NotBlank
+    @Size(max = 100)
+    @Column(unique = true)
+    private String name; // e.g., "Kigali City", "Eastern Province"
 
-    @OneToMany(mappedBy = "province", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "province", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<District> districts = new HashSet<>();
-
-    // Explicit setters to avoid IDE/processor issues when Lombok isn't active
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
 }

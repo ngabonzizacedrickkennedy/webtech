@@ -10,14 +10,13 @@ import lombok.NoArgsConstructor;
 
 import java.util.HashSet;
 import java.util.Set;
-import com.thms.model.Village;
 
 @Entity
-@Table(name = "users", 
-       uniqueConstraints = {
-           @UniqueConstraint(columnNames = "username"),
-           @UniqueConstraint(columnNames = "email")
-       })
+@Table(name = "users",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = "username"),
+                @UniqueConstraint(columnNames = "email")
+        })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -52,9 +51,11 @@ public class User {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    // One-to-Many relationship: One User can have many Bookings
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private Set<Booking> bookings = new HashSet<>();
 
+    // Many-to-One relationship: Many Users can belong to one Village (Location)
     @ManyToOne
     @JoinColumn(name = "village_id")
     private Village village;
@@ -64,5 +65,5 @@ public class User {
         ROLE_MANAGER,
         ROLE_ADMIN
     }
-    
+
 }

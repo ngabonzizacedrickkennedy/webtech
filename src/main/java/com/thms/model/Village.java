@@ -1,9 +1,14 @@
 package com.thms.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "villages")
@@ -15,21 +20,14 @@ public class Village {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String code;
-
-    @Column(nullable = false)
+    @NotBlank
+    @Size(max = 100)
     private String name;
 
     @ManyToOne
-    @JoinColumn(name = "cell_id")
+    @JoinColumn(name = "cell_id", nullable = false)
     private Cell cell;
 
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
+    @OneToMany(mappedBy = "village")
+    private Set<User> users = new HashSet<>();
 }
