@@ -1,34 +1,35 @@
 package com.thms.repository;
 
 import com.thms.model.Province;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface ProvinceRepository extends JpaRepository<Province, Long> {
 
-    // findBy queries
+    // Find by code
     Optional<Province> findByCode(String code);
+
+    // Find by code (case-insensitive)
+    Optional<Province> findByCodeIgnoreCase(String code);
+
+    // Find by name
     Optional<Province> findByName(String name);
+
+    // Find by name (case-insensitive)
     Optional<Province> findByNameIgnoreCase(String name);
-    List<Province> findByCodeContaining(String code);
-    List<Province> findByNameContaining(String name);
 
-    // existsBy queries
+    // Check existence by code
     boolean existsByCode(String code);
+
+    // Check existence by name
     boolean existsByName(String name);
-    boolean existsByCodeIgnoreCase(String code);
 
-    // Sorting
-    List<Province> findAll(Sort sort);
-
-    // Pagination
-    Page<Province> findAll(Pageable pageable);
-    Page<Province> findByNameContaining(String name, Pageable pageable);
+    // Custom query to find province with districts count
+    @Query("SELECT p FROM Province p LEFT JOIN FETCH p.districts WHERE p.id = :id")
+    Optional<Province> findByIdWithDistricts(@Param("id") Long id);
 }
