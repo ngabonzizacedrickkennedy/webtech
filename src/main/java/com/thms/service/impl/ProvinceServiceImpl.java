@@ -40,8 +40,9 @@ public class ProvinceServiceImpl implements ProvinceService {
     @Override
     @Transactional
     public void deleteById(Long id) {
-        // Prevent deleting a province that still has districts
-        if (districtRepository.countByProvince_Id(id) > 0) {
+        // CHANGE FROM: districtRepository.countByProvince_Id(id)
+        // TO: districtRepository.countByProvinceId(id)
+        if (districtRepository.countByProvinceId(id) > 0) {
             throw new IllegalStateException("Cannot delete province with existing districts");
         }
         provinceRepository.deleteById(id);

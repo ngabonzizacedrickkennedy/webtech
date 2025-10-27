@@ -42,6 +42,8 @@ public class VillageServiceImpl implements VillageService {
 
     @Override
     public List<Village> findByCellId(Long cellId) {
-        return villageRepository.findByCell_Id(cellId);
+        // CHANGE FROM: villageRepository.findByCell_Id(cellId)
+        // TO: villageRepository.findByCellId(cellId)
+        return villageRepository.findByCellId(cellId);
     }
 }

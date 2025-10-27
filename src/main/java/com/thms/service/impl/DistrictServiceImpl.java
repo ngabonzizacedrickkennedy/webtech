@@ -40,7 +40,9 @@ public class DistrictServiceImpl implements DistrictService {
     @Override
     @Transactional
     public void deleteById(Long id) {
-        if (sectorRepository.countByDistrict_Id(id) > 0) {
+        // CHANGE FROM: sectorRepository.countByDistrict_Id(id)
+        // TO: sectorRepository.countByDistrictId(id)
+        if (sectorRepository.countByDistrictId(id) > 0) {
             throw new IllegalStateException("Cannot delete district with existing sectors");
         }
         districtRepository.deleteById(id);
@@ -48,6 +50,8 @@ public class DistrictServiceImpl implements DistrictService {
 
     @Override
     public List<District> findByProvinceId(Long provinceId) {
-        return districtRepository.findByProvince_Id(provinceId);
+        // CHANGE FROM: districtRepository.findByProvince_Id(provinceId)
+        // TO: districtRepository.findByProvinceId(provinceId)
+        return districtRepository.findByProvinceId(provinceId);
     }
 }

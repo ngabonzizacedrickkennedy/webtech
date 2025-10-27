@@ -25,6 +25,9 @@ public interface CellRepository extends JpaRepository<Cell, Long> {
     boolean existsByName(String name);
     boolean existsBySectorId(Long sectorId);
 
+    // countBy queries - ADD THIS LINE
+    long countBySectorId(Long sectorId);
+
     // Sorting
     List<Cell> findAll(Sort sort);
     List<Cell> findBySectorId(Long sectorId, Sort sort);

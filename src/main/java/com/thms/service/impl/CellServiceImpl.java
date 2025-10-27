@@ -40,7 +40,9 @@ public class CellServiceImpl implements CellService {
     @Override
     @Transactional
     public void deleteById(Long id) {
-        if (villageRepository.countByCell_Id(id) > 0) {
+        // CHANGE FROM: villageRepository.countByCell_Id(id)
+        // TO: villageRepository.countByCellId(id)
+        if (villageRepository.countByCellId(id) > 0) {
             throw new IllegalStateException("Cannot delete cell with existing villages");
         }
         cellRepository.deleteById(id);
@@ -48,6 +50,8 @@ public class CellServiceImpl implements CellService {
 
     @Override
     public List<Cell> findBySectorId(Long sectorId) {
-        return cellRepository.findBySector_Id(sectorId);
+        // CHANGE FROM: cellRepository.findBySector_Id(sectorId)
+        // TO: cellRepository.findBySectorId(sectorId)
+        return cellRepository.findBySectorId(sectorId);
     }
 }

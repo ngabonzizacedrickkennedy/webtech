@@ -67,4 +67,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // Custom query for getting user count by district
     @Query("SELECT COUNT(u) FROM User u WHERE u.village.cell.sector.district.id = :districtId")
     long countByDistrictId(@Param("districtId") Long districtId);
+
+    // ADD THIS: Global search method for users
+    @Query("SELECT u FROM User u WHERE " +
+            "LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%'))")
+    List<User> findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(
+            @Param("query") String query);
 }

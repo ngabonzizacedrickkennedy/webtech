@@ -24,6 +24,9 @@ public interface DistrictRepository extends JpaRepository<District, Long> {
     boolean existsByName(String name);
     boolean existsByProvinceId(Long provinceId);
 
+    // countBy queries - ADD THIS LINE
+    long countByProvinceId(Long provinceId);
+
     // Sorting
     List<District> findAll(Sort sort);
     List<District> findByProvinceId(Long provinceId, Sort sort);

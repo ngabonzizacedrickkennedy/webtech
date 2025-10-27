@@ -27,6 +27,9 @@ public interface VillageRepository extends JpaRepository<Village, Long> {
 	boolean existsByName(String name);
 	boolean existsByCellId(Long cellId);
 
+	// countBy queries - ADD THIS LINE
+	long countByCellId(Long cellId);
+
 	// Sorting
 	List<Village> findAll(Sort sort);
 	List<Village> findByCellId(Long cellId, Sort sort);

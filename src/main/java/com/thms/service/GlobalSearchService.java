@@ -34,10 +34,10 @@ public class GlobalSearchService {
     private final MovieMapper movieMapper;
 
     public GlobalSearchService(MovieRepository movieRepository,
-                             TheatreRepository theatreRepository,
-                             ScreeningRepository screeningRepository,
-                             UserRepository userRepository,
-                             MovieMapper movieMapper) {
+                               TheatreRepository theatreRepository,
+                               ScreeningRepository screeningRepository,
+                               UserRepository userRepository,
+                               MovieMapper movieMapper) {
         this.movieRepository = movieRepository;
         this.theatreRepository = theatreRepository;
         this.screeningRepository = screeningRepository;
@@ -75,12 +75,12 @@ public class GlobalSearchService {
      */
     public Map<String, Object> searchMovies(String query, int limit) {
         List<MovieDTO> movies = searchMovieEntities(query, limit);
-        
+
         Map<String, Object> results = new HashMap<>();
         results.put("movies", movies);
         results.put("query", query);
         results.put("totalResults", movies.size());
-        
+
         return results;
     }
 
@@ -89,12 +89,12 @@ public class GlobalSearchService {
      */
     public Map<String, Object> searchTheatres(String query, int limit) {
         List<TheatreDTO> theatres = searchTheatreEntities(query, limit);
-        
+
         Map<String, Object> results = new HashMap<>();
         results.put("theatres", theatres);
         results.put("query", query);
         results.put("totalResults", theatres.size());
-        
+
         return results;
     }
 
@@ -103,12 +103,12 @@ public class GlobalSearchService {
      */
     public Map<String, Object> searchScreenings(String query, int limit) {
         List<ScreeningDTO> screenings = searchScreeningEntities(query, limit);
-        
+
         Map<String, Object> results = new HashMap<>();
         results.put("screenings", screenings);
         results.put("query", query);
         results.put("totalResults", screenings.size());
-        
+
         return results;
     }
 
@@ -117,12 +117,12 @@ public class GlobalSearchService {
      */
     public Map<String, Object> searchUsers(String query, int limit) {
         List<UserDTO> users = searchUserEntities(query, limit);
-        
+
         Map<String, Object> results = new HashMap<>();
         results.put("users", users);
         results.put("query", query);
         results.put("totalResults", users.size());
-        
+
         return results;
     }
 
@@ -131,25 +131,25 @@ public class GlobalSearchService {
      */
     public Map<String, Object> getSearchSuggestions(String query, int limit) {
         Map<String, Object> suggestions = new HashMap<>();
-        
+
         // Movie title suggestions
         List<String> movieTitles = movieRepository.findByTitleContainingIgnoreCase(query)
                 .stream()
                 .limit(limit)
                 .map(Movie::getTitle)
                 .collect(Collectors.toList());
-        
+
         // Theatre name suggestions
         List<String> theatreNames = theatreRepository.findByNameContainingIgnoreCase(query)
                 .stream()
                 .limit(limit)
                 .map(Theatre::getName)
                 .collect(Collectors.toList());
-        
+
         suggestions.put("movieTitles", movieTitles);
         suggestions.put("theatreNames", theatreNames);
         suggestions.put("query", query);
-        
+
         return suggestions;
     }
 
@@ -157,11 +157,11 @@ public class GlobalSearchService {
 
     private List<MovieDTO> searchMovieEntities(String query, int limit) {
         Pageable pageable = PageRequest.of(0, limit);
-        
-        // Search by title, director, cast, or genre
+
+        // FIXED: Pass only ONE query parameter instead of three
         List<Movie> movies = movieRepository.findByTitleContainingIgnoreCaseOrDirectorContainingIgnoreCaseOrCastContainingIgnoreCase(
-                query, query, query, pageable);
-        
+                query, pageable);
+
         return movies.stream()
                 .map(movieMapper::toDTO)
                 .collect(Collectors.toList());
@@ -170,7 +170,7 @@ public class GlobalSearchService {
     private List<TheatreDTO> searchTheatreEntities(String query, int limit) {
         List<Theatre> theatres = theatreRepository.findByNameContainingIgnoreCaseOrAddressContainingIgnoreCase(
                 query, query);
-        
+
         return theatres.stream()
                 .limit(limit)
                 .map(this::convertTheatreToDTO)
@@ -179,11 +179,11 @@ public class GlobalSearchService {
 
     private List<ScreeningDTO> searchScreeningEntities(String query, int limit) {
         LocalDateTime now = LocalDateTime.now();
-        
+
         // Search screenings by movie title or theatre name (only future screenings)
         List<Screening> screenings = screeningRepository.findByMovieTitleOrTheatreNameAndStartTimeAfter(
                 query, query, now);
-        
+
         return screenings.stream()
                 .limit(limit)
                 .map(this::convertScreeningToDTO)
@@ -191,9 +191,10 @@ public class GlobalSearchService {
     }
 
     private List<UserDTO> searchUserEntities(String query, int limit) {
+        // FIXED: Pass only ONE query parameter instead of four
         List<User> users = userRepository.findByUsernameContainingIgnoreCaseOrEmailContainingIgnoreCaseOrFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(
-                query, query, query, query);
-        
+                query);
+
         return users.stream()
                 .limit(limit)
                 .map(this::convertUserToDTO)

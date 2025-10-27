@@ -25,6 +25,9 @@ public interface SectorRepository extends JpaRepository<Sector, Long> {
     boolean existsByName(String name);
     boolean existsByDistrictId(Long districtId);
 
+    // countBy queries - ADD THIS LINE
+    long countByDistrictId(Long districtId);
+
     // Sorting
     List<Sector> findAll(Sort sort);
     List<Sector> findByDistrictId(Long districtId, Sort sort);

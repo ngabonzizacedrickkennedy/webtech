@@ -40,7 +40,9 @@ public class SectorServiceImpl implements SectorService {
     @Override
     @Transactional
     public void deleteById(Long id) {
-        if (cellRepository.countBySector_Id(id) > 0) {
+        // CHANGE FROM: cellRepository.countBySector_Id(id)
+        // TO: cellRepository.countBySectorId(id)
+        if (cellRepository.countBySectorId(id) > 0) {
             throw new IllegalStateException("Cannot delete sector with existing cells");
         }
         sectorRepository.deleteById(id);
@@ -48,6 +50,8 @@ public class SectorServiceImpl implements SectorService {
 
     @Override
     public List<Sector> findByDistrictId(Long districtId) {
-        return sectorRepository.findByDistrict_Id(districtId);
+        // CHANGE FROM: sectorRepository.findByDistrict_Id(districtId)
+        // TO: sectorRepository.findByDistrictId(districtId)
+        return sectorRepository.findByDistrictId(districtId);
     }
 }
