@@ -16,7 +16,11 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
 
     // Existing methods
     List<Movie> findByTitleContainingIgnoreCase(String title);
-    List<Movie> findByGenre(Movie.Genre genre);
+
+    // Updated: Query to find movies by genre name
+    @Query("SELECT DISTINCT m FROM Movie m JOIN m.genres g WHERE UPPER(g.name) = UPPER(:genreName)")
+    List<Movie> findByGenreName(@Param("genreName") String genreName);
+
     List<Movie> findByReleaseDateAfter(LocalDate date);
 
     @Query("SELECT m FROM Movie m WHERE m.releaseDate > :currentDate ORDER BY m.releaseDate ASC")
@@ -24,32 +28,33 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
 
     // New pagination methods
     Page<Movie> findByTitleContainingIgnoreCase(String title, Pageable pageable);
-    Page<Movie> findByGenre(Movie.Genre genre, Pageable pageable);
+
+    @Query("SELECT DISTINCT m FROM Movie m JOIN m.genres g WHERE UPPER(g.name) = UPPER(:genreName)")
+    Page<Movie> findByGenreName(@Param("genreName") String genreName, Pageable pageable);
+
     Page<Movie> findByReleaseDateAfter(LocalDate date, Pageable pageable);
 
     @Query("SELECT m FROM Movie m WHERE m.releaseDate > :currentDate")
     Page<Movie> findUpcomingMovies(@Param("currentDate") LocalDate currentDate, Pageable pageable);
 
-    @Query("SELECT m FROM Movie m WHERE " +
+    @Query("SELECT m FROM Movie m LEFT JOIN m.genres g WHERE " +
             "(:title IS NULL OR LOWER(m.title) LIKE LOWER(CONCAT('%', :title, '%'))) AND " +
-            "(:genre IS NULL OR m.genre = :genre)")
+            "(:genreName IS NULL OR UPPER(g.name) = UPPER(:genreName))")
     Page<Movie> findMoviesWithFilters(@Param("title") String title,
-                                      @Param("genre") Movie.Genre genre,
+                                      @Param("genreName") String genreName,
                                       Pageable pageable);
 
     // New search methods for global search
-    @Query("SELECT m FROM Movie m WHERE " +
-            "LOWER(m.title) LIKE LOWER(CONCAT('%', :title, '%')) OR " +
-            "LOWER(m.director) LIKE LOWER(CONCAT('%', :director, '%')) OR " +
-            "LOWER(m.cast) LIKE LOWER(CONCAT('%', :cast, '%'))")
+    @Query("SELECT DISTINCT m FROM Movie m WHERE " +
+            "LOWER(m.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(m.director) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(m.cast) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<Movie> findByTitleContainingIgnoreCaseOrDirectorContainingIgnoreCaseOrCastContainingIgnoreCase(
-            @Param("title") String title,
-            @Param("director") String director,
-            @Param("cast") String cast,
+            @Param("query") String query,
             Pageable pageable);
 
     // Advanced search with multiple criteria
-    @Query("SELECT m FROM Movie m WHERE " +
+    @Query("SELECT DISTINCT m FROM Movie m WHERE " +
             "LOWER(m.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(m.director) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
             "LOWER(m.cast) LIKE LOWER(CONCAT('%', :query, '%')) OR " +

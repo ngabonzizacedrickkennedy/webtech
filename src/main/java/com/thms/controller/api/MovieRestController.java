@@ -4,7 +4,9 @@ import com.thms.dto.ApiResponse;
 import com.thms.dto.MovieDTO;
 import com.thms.dto.ScreeningDTO;
 import com.thms.exception.ResourceNotFoundException;
+import com.thms.model.Genre;
 import com.thms.model.Movie;
+import com.thms.repository.GenreRepository;
 import com.thms.service.MovieService;
 import com.thms.service.ScreeningService;
 import com.thms.service.TheatreService;
@@ -18,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,11 +31,14 @@ public class MovieRestController {
     private final MovieService movieService;
     private final TheatreService theatreService;
     private final ScreeningService screeningService;
+    private final GenreRepository genreRepository;
 
-    public MovieRestController(MovieService movieService, TheatreService theatreService, ScreeningService screeningService) {
+    public MovieRestController(MovieService movieService, TheatreService theatreService,
+                               ScreeningService screeningService, GenreRepository genreRepository) {
         this.movieService = movieService;
         this.theatreService = theatreService;
         this.screeningService = screeningService;
+        this.genreRepository = genreRepository;
     }
 
     @GetMapping
@@ -45,16 +49,10 @@ public class MovieRestController {
 
         List<MovieDTO> movies;
 
-        // Get movies based on filters
         if (query != null && !query.isEmpty()) {
             movies = movieService.searchMoviesByTitle(query);
         } else if (genre != null && !genre.isEmpty()) {
-            try {
-                Movie.Genre movieGenre = Movie.Genre.valueOf(genre.toUpperCase());
-                movies = movieService.getMoviesByGenre(movieGenre);
-            } catch (IllegalArgumentException e) {
-                movies = movieService.getAllMovies();
-            }
+            movies = movieService.getMoviesByGenreName(genre);
         } else {
             movies = movieService.getAllMovies();
         }
@@ -62,51 +60,18 @@ public class MovieRestController {
         return ResponseEntity.ok(ApiResponse.success(movies));
     }
 
-    @GetMapping("/screenings")
-    public ResponseEntity<ApiResponse<Map<Long, List<ScreeningDTO>>>> getMovieScreenings(
-            @RequestParam(value = "date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        
-        // Get screenings for today or specified date
-        LocalDateTime startDateTime;
-        LocalDateTime endDateTime;
-
-        if (date != null) {
-            startDateTime = LocalDateTime.of(date, LocalTime.MIDNIGHT);
-            endDateTime = LocalDateTime.of(date, LocalTime.MAX);
-        } else {
-            // Default to today
-            LocalDate today = LocalDate.now();
-            startDateTime = LocalDateTime.of(today, LocalTime.MIDNIGHT);
-            endDateTime = LocalDateTime.of(today, LocalTime.MAX);
-        }
-
-        List<ScreeningDTO> screenings = screeningService.getScreeningsByDateRange(startDateTime, endDateTime);
-
-        // Group screenings by movie ID
-        Map<Long, List<ScreeningDTO>> screeningsByMovie = screenings.stream()
-                .collect(Collectors.groupingBy(ScreeningDTO::getMovieId));
-
-        return ResponseEntity.ok(ApiResponse.success(screeningsByMovie));
-    }
-
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<MovieDTO>> getMovieById(@PathVariable("id") Long id) {
         MovieDTO movie = movieService.getMovieById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", "id", id));
-
         return ResponseEntity.ok(ApiResponse.success(movie));
     }
 
     @GetMapping("/{id}/screenings")
-    public ResponseEntity<ApiResponse<Map<LocalDate, List<ScreeningDTO>>>> getMovieScreenings(
+    public ResponseEntity<ApiResponse<List<ScreeningDTO>>> getMovieScreenings(
             @PathVariable("id") Long id,
-            @RequestParam(value = "days", defaultValue = "7") Integer days) {
-        
-        // Check if movie exists
-        movieService.getMovieById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Movie", "id", id));
-        
-        // Get screenings for this movie (next X days)
+            @RequestParam(value = "days", defaultValue = "7") int days) {
+
         LocalDateTime startDateTime = LocalDateTime.now();
         LocalDateTime endDateTime = startDateTime.plusDays(days);
 
@@ -115,7 +80,22 @@ public class MovieRestController {
                 .filter(s -> s.getStartTime().isAfter(startDateTime) && s.getStartTime().isBefore(endDateTime))
                 .collect(Collectors.toList());
 
-        // Group screenings by date
+        return ResponseEntity.ok(ApiResponse.success(screenings));
+    }
+
+    @GetMapping("/{id}/screenings/grouped")
+    public ResponseEntity<ApiResponse<Map<LocalDate, List<ScreeningDTO>>>> getMovieScreeningsGrouped(
+            @PathVariable("id") Long id,
+            @RequestParam(value = "days", defaultValue = "7") int days) {
+
+        LocalDateTime startDateTime = LocalDateTime.now();
+        LocalDateTime endDateTime = startDateTime.plusDays(days);
+
+        List<ScreeningDTO> screenings = screeningService.getScreeningsByMovie(id)
+                .stream()
+                .filter(s -> s.getStartTime().isAfter(startDateTime) && s.getStartTime().isBefore(endDateTime))
+                .collect(Collectors.toList());
+
         Map<LocalDate, List<ScreeningDTO>> screeningsByDate = screenings.stream()
                 .collect(Collectors.groupingBy(s -> s.getStartTime().toLocalDate()));
 
@@ -130,68 +110,30 @@ public class MovieRestController {
 
     @GetMapping("/genre/{genre}")
     public ResponseEntity<ApiResponse<List<MovieDTO>>> getMoviesByGenre(@PathVariable("genre") String genre) {
-        try {
-            Movie.Genre movieGenre = Movie.Genre.valueOf(genre.toUpperCase());
-            List<MovieDTO> movies = movieService.getMoviesByGenre(movieGenre);
-            return ResponseEntity.ok(ApiResponse.success(movies));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error("Invalid genre: " + genre));
-        }
+        List<MovieDTO> movies = movieService.getMoviesByGenreName(genre);
+        return ResponseEntity.ok(ApiResponse.success(movies));
     }
 
     @GetMapping("/genres")
     public ResponseEntity<ApiResponse<List<String>>> getAllGenres() {
-        List<String> genres = Arrays.stream(Movie.Genre.values())
-                .map(Enum::name)
+        List<String> genres = genreRepository.findAllOrderedByName()
+                .stream()
+                .map(Genre::getName)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.success(genres));
     }
 
     @GetMapping("/ratings")
     public ResponseEntity<ApiResponse<List<String>>> getAllRatings() {
-        List<String> ratings = Arrays.stream(Movie.Rating.values())
+        List<String> ratings = java.util.Arrays.stream(Movie.Rating.values())
                 .map(Enum::name)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.success(ratings));
     }
 
-    // Admin-only methods below
-
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
-    @PostMapping
-    public ResponseEntity<ApiResponse<MovieDTO>> createMovie(@Valid @RequestBody MovieDTO movieDTO) {
-        MovieDTO createdMovie = movieService.createMovie(movieDTO);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(createdMovie, "Movie created successfully"));
+    @GetMapping("/upcoming")
+    public ResponseEntity<ApiResponse<List<MovieDTO>>> getUpcomingMovies() {
+        List<MovieDTO> movies = movieService.getUpcomingMovies();
+        return ResponseEntity.ok(ApiResponse.success(movies));
     }
-
-    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<MovieDTO>> updateMovie(
-            @PathVariable("id") Long id,
-            @Valid @RequestBody MovieDTO movieDTO) {
-        
-        // Check if movie exists
-        movieService.getMovieById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Movie", "id", id));
-        
-        movieDTO.setId(id);
-        MovieDTO updatedMovie = movieService.updateMovie(id, movieDTO)
-                .orElseThrow(() -> new ResourceNotFoundException("Movie", "id", id));
-        
-        return ResponseEntity.ok(ApiResponse.success(updatedMovie, "Movie updated successfully"));
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteMovie(@PathVariable("id") Long id) {
-        // Check if movie exists
-        movieService.getMovieById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Movie", "id", id));
-        
-        movieService.deleteMovie(id);
-        
-        return ResponseEntity.ok(ApiResponse.success(null, "Movie deleted successfully"));
-    }
-} 
+}

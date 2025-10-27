@@ -10,6 +10,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -28,7 +30,8 @@ public class MovieDTO {
     @PositiveOrZero(message = "Duration must be a positive number")
     private Integer durationMinutes;
 
-    private Movie.Genre genre;
+    // Changed from Movie.Genre to Set<String> for genre names
+    private Set<String> genreNames = new HashSet<>();
 
     @Size(max = 255, message = "Director name cannot exceed 255 characters")
     private String director;
@@ -38,10 +41,8 @@ public class MovieDTO {
 
     private LocalDate releaseDate;
 
-//    @Size(max = 255, message = "Poster URL cannot exceed 255 characters")
     private String posterImageUrl;
 
-//    @Size(max = 255, message = "Trailer URL cannot exceed 255 characters")
     private String trailerUrl;
 
     private Movie.Rating rating;

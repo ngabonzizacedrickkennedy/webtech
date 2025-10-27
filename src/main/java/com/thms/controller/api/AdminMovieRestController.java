@@ -3,7 +3,9 @@ package com.thms.controller.api;
 import com.thms.dto.ApiResponse;
 import com.thms.dto.MovieDTO;
 import com.thms.exception.ResourceNotFoundException;
+import com.thms.model.Genre;
 import com.thms.model.Movie;
+import com.thms.repository.GenreRepository;
 import com.thms.service.MovieService;
 import com.thms.service.ScreeningService;
 import com.thms.service.TheatreService;
@@ -23,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-
 @RestController
 @RequestMapping("/api/admin/movies")
 @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
@@ -32,13 +33,16 @@ public class AdminMovieRestController {
     private final MovieService movieService;
     private final ScreeningService screeningService;
     private final TheatreService theatreService;
+    private final GenreRepository genreRepository;
 
     public AdminMovieRestController(MovieService movieService,
                                     ScreeningService screeningService,
-                                    TheatreService theatreService) {
+                                    TheatreService theatreService,
+                                    GenreRepository genreRepository) {
         this.movieService = movieService;
         this.screeningService = screeningService;
         this.theatreService = theatreService;
+        this.genreRepository = genreRepository;
     }
 
     @GetMapping
@@ -53,7 +57,7 @@ public class AdminMovieRestController {
         // Validate page and size parameters
         if (page < 0) page = 0;
         if (size < 1) size = 10;
-        if (size > 100) size = 100; // Limit maximum page size
+        if (size > 100) size = 100;
 
         // Create sort direction
         Sort.Direction direction = "desc".equalsIgnoreCase(sortOrder) ?
@@ -71,12 +75,7 @@ public class AdminMovieRestController {
         if (search != null && !search.trim().isEmpty()) {
             moviePage = movieService.searchMoviesByTitle(search.trim(), pageable);
         } else if (genre != null && !genre.trim().isEmpty()) {
-            try {
-                Movie.Genre genreEnum = Movie.Genre.valueOf(genre.toUpperCase());
-                moviePage = movieService.getMoviesByGenre(genreEnum, pageable);
-            } catch (IllegalArgumentException e) {
-                moviePage = movieService.getAllMovies(pageable);
-            }
+            moviePage = movieService.getMoviesByGenreName(genre, pageable);
         } else {
             moviePage = movieService.getAllMovies(pageable);
         }
@@ -100,9 +99,8 @@ public class AdminMovieRestController {
      * Validate and return a safe sort field
      */
     private String validateSortField(String sortBy) {
-        // Define allowed sort fields to prevent SQL injection
         List<String> allowedFields = Arrays.asList(
-                "title", "genre", "releaseDate", "rating", "durationMinutes", "director", "id"
+                "title", "releaseDate", "rating", "durationMinutes", "director", "id"
         );
 
         if (allowedFields.contains(sortBy)) {
@@ -114,8 +112,9 @@ public class AdminMovieRestController {
 
     @GetMapping("/genres")
     public ResponseEntity<ApiResponse<List<String>>> getGenres() {
-        List<String> genres = Arrays.stream(Movie.Genre.values())
-                .map(Enum::name)
+        List<String> genres = genreRepository.findAllOrderedByName()
+                .stream()
+                .map(Genre::getName)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(ApiResponse.success(genres));
     }
@@ -148,7 +147,6 @@ public class AdminMovieRestController {
             @PathVariable("id") Long id,
             @Valid @RequestBody MovieDTO movieDTO) {
 
-        // Check if movie exists
         movieService.getMovieById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", "id", id));
 
@@ -162,7 +160,6 @@ public class AdminMovieRestController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteMovie(@PathVariable("id") Long id) {
-        // Check if movie exists
         movieService.getMovieById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Movie", "id", id));
 

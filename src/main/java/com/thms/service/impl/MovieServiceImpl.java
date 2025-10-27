@@ -29,7 +29,6 @@ public class MovieServiceImpl implements MovieService {
         this.movieMapper = movieMapper;
     }
 
-    // Existing methods (keep all existing implementations)
     @Override
     @Transactional(readOnly = true)
     public List<MovieDTO> getAllMovies() {
@@ -56,9 +55,7 @@ public class MovieServiceImpl implements MovieService {
     public Optional<MovieDTO> updateMovie(Long id, MovieDTO movieDTO) {
         return movieRepository.findById(id)
                 .map(existingMovie -> {
-                    // Use mapper to update entity from DTO
                     movieMapper.updateEntityFromDTO(movieDTO, existingMovie);
-
                     Movie updatedMovie = movieRepository.save(existingMovie);
                     return movieMapper.toDTO(updatedMovie);
                 });
@@ -79,8 +76,8 @@ public class MovieServiceImpl implements MovieService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<MovieDTO> getMoviesByGenre(Movie.Genre genre) {
-        return movieRepository.findByGenre(genre).stream()
+    public List<MovieDTO> getMoviesByGenreName(String genreName) {
+        return movieRepository.findByGenreName(genreName).stream()
                 .map(movieMapper::toDTO)
                 .collect(Collectors.toList());
     }
@@ -102,7 +99,7 @@ public class MovieServiceImpl implements MovieService {
                 .collect(Collectors.toList());
     }
 
-    // New pagination methods
+    // Pagination methods
     @Override
     @Transactional(readOnly = true)
     public Page<MovieDTO> getAllMovies(Pageable pageable) {
@@ -110,7 +107,6 @@ public class MovieServiceImpl implements MovieService {
         List<MovieDTO> movieDTOs = moviePage.getContent().stream()
                 .map(movieMapper::toDTO)
                 .collect(Collectors.toList());
-
         return new PageImpl<>(movieDTOs, pageable, moviePage.getTotalElements());
     }
 
@@ -121,18 +117,16 @@ public class MovieServiceImpl implements MovieService {
         List<MovieDTO> movieDTOs = moviePage.getContent().stream()
                 .map(movieMapper::toDTO)
                 .collect(Collectors.toList());
-
         return new PageImpl<>(movieDTOs, pageable, moviePage.getTotalElements());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<MovieDTO> getMoviesByGenre(Movie.Genre genre, Pageable pageable) {
-        Page<Movie> moviePage = movieRepository.findByGenre(genre, pageable);
+    public Page<MovieDTO> getMoviesByGenreName(String genreName, Pageable pageable) {
+        Page<Movie> moviePage = movieRepository.findByGenreName(genreName, pageable);
         List<MovieDTO> movieDTOs = moviePage.getContent().stream()
                 .map(movieMapper::toDTO)
                 .collect(Collectors.toList());
-
         return new PageImpl<>(movieDTOs, pageable, moviePage.getTotalElements());
     }
 
@@ -144,8 +138,6 @@ public class MovieServiceImpl implements MovieService {
         List<MovieDTO> movieDTOs = moviePage.getContent().stream()
                 .map(movieMapper::toDTO)
                 .collect(Collectors.toList());
-
         return new PageImpl<>(movieDTOs, pageable, moviePage.getTotalElements());
     }
-
 }

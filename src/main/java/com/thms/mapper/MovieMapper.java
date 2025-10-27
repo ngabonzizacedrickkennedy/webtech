@@ -1,14 +1,26 @@
 package com.thms.mapper;
 
 import com.thms.dto.MovieDTO;
+import com.thms.model.Genre;
 import com.thms.model.Movie;
+import com.thms.repository.GenreRepository;
 import org.springframework.stereotype.Component;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Mapper class for converting between Movie entity and MovieDTO
  */
 @Component
 public class MovieMapper {
+
+    private final GenreRepository genreRepository;
+
+    public MovieMapper(GenreRepository genreRepository) {
+        this.genreRepository = genreRepository;
+    }
 
     /**
      * Convert Movie entity to MovieDTO
@@ -21,7 +33,24 @@ public class MovieMapper {
         }
 
         MovieDTO movieDTO = new MovieDTO();
-        copyFields(movie, movieDTO);
+        movieDTO.setId(movie.getId());
+        movieDTO.setTitle(movie.getTitle());
+        movieDTO.setDescription(movie.getDescription());
+        movieDTO.setDurationMinutes(movie.getDurationMinutes());
+
+        // Convert Genre entities to genre names
+        Set<String> genreNames = movie.getGenres().stream()
+                .map(Genre::getName)
+                .collect(Collectors.toSet());
+        movieDTO.setGenreNames(genreNames);
+
+        movieDTO.setDirector(movie.getDirector());
+        movieDTO.setCast(movie.getCast());
+        movieDTO.setReleaseDate(movie.getReleaseDate());
+        movieDTO.setPosterImageUrl(movie.getPosterImageUrl());
+        movieDTO.setTrailerUrl(movie.getTrailerUrl());
+        movieDTO.setRating(movie.getRating());
+
         return movieDTO;
     }
 
@@ -36,7 +65,32 @@ public class MovieMapper {
         }
 
         Movie movie = new Movie();
-        copyFields(movieDTO, movie);
+        movie.setId(movieDTO.getId());
+        movie.setTitle(movieDTO.getTitle());
+        movie.setDescription(movieDTO.getDescription());
+        movie.setDurationMinutes(movieDTO.getDurationMinutes());
+
+        // Convert genre names to Genre entities
+        Set<Genre> genres = new HashSet<>();
+        if (movieDTO.getGenreNames() != null) {
+            for (String genreName : movieDTO.getGenreNames()) {
+                Genre genre = genreRepository.findByNameIgnoreCase(genreName)
+                        .orElseGet(() -> {
+                            Genre newGenre = new Genre(genreName);
+                            return genreRepository.save(newGenre);
+                        });
+                genres.add(genre);
+            }
+        }
+        movie.setGenres(genres);
+
+        movie.setDirector(movieDTO.getDirector());
+        movie.setCast(movieDTO.getCast());
+        movie.setReleaseDate(movieDTO.getReleaseDate());
+        movie.setPosterImageUrl(movieDTO.getPosterImageUrl());
+        movie.setTrailerUrl(movieDTO.getTrailerUrl());
+        movie.setRating(movieDTO.getRating());
+
         return movie;
     }
 
@@ -50,53 +104,28 @@ public class MovieMapper {
             return;
         }
 
-        copyFields(movieDTO, movie);
-    }
+        movie.setTitle(movieDTO.getTitle());
+        movie.setDescription(movieDTO.getDescription());
+        movie.setDurationMinutes(movieDTO.getDurationMinutes());
 
-    /**
-     * Copy a predefined set of fields from src to dest using reflection so the code
-     * does not rely on Lombok-generated getters/setters being present at compile time.
-     */
-    private void copyFields(Object src, Object dest) {
-        String[] fieldNames = new String[] {
-            "title",
-            "description",
-            "durationMinutes",
-            "genre",
-            "director",
-            "cast",
-            "releaseDate",
-            "posterImageUrl",
-            "trailerUrl",
-            "rating"
-        };
-
-        for (String name : fieldNames) {
-            java.lang.reflect.Field sf = findField(src.getClass(), name);
-            java.lang.reflect.Field df = findField(dest.getClass(), name);
-            if (sf == null || df == null) {
-                continue;
-            }
-            try {
-                sf.setAccessible(true);
-                df.setAccessible(true);
-                Object value = sf.get(src);
-                df.set(dest, value);
-            } catch (IllegalAccessException ignored) {
-                // ignore fields we can't access
+        // Update genres - clear existing and add new ones
+        movie.getGenres().clear();
+        if (movieDTO.getGenreNames() != null) {
+            for (String genreName : movieDTO.getGenreNames()) {
+                Genre genre = genreRepository.findByNameIgnoreCase(genreName)
+                        .orElseGet(() -> {
+                            Genre newGenre = new Genre(genreName);
+                            return genreRepository.save(newGenre);
+                        });
+                movie.getGenres().add(genre);
             }
         }
-    }
 
-    private java.lang.reflect.Field findField(Class<?> cls, String name) {
-        Class<?> current = cls;
-        while (current != null) {
-            try {
-                return current.getDeclaredField(name);
-            } catch (NoSuchFieldException e) {
-                current = current.getSuperclass();
-            }
-        }
-        return null;
+        movie.setDirector(movieDTO.getDirector());
+        movie.setCast(movieDTO.getCast());
+        movie.setReleaseDate(movieDTO.getReleaseDate());
+        movie.setPosterImageUrl(movieDTO.getPosterImageUrl());
+        movie.setTrailerUrl(movieDTO.getTrailerUrl());
+        movie.setRating(movieDTO.getRating());
     }
-    }
+}
